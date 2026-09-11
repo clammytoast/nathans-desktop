@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Computer</title>
+<style>
+  :root{
+    --taskbar-top:#2a6fd6;
+    --taskbar-bot:#0b3f9e;
+    --start-green-top:#4fae4f;
+    --start-green-bot:#1f7a1f;
+    --win-active-top:#1b5fd6;
+    --win-active-bot:#0a3d95;
+    --win-inactive-top:#9fb3d6;
+    --win-inactive-bot:#7f93b6;
+    --win-body:#ece9da;
+    --win-body-dark:#d8d4c0;
+    --paper:#f7f5ee;
+    --ink:#242018;
+    --accent-purple:#8a5fc4;
+    --accent-purple-glow:#b98fe8;
+    --desk-dark:#080a10;
+    --desk-mid:#11141d;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    font-family:Tahoma, Verdana, 'Segoe UI', sans-serif;
+    background:var(--desk-dark);
+  }
+  #desktop{
+    position:relative;
+    width:100%;
+    height:100vh;
+    background:
+      radial-gradient(ellipse at 82% 14%, rgba(138,95,196,0.05) 0%, rgba(138,95,196,0) 40%),
+      linear-gradient(160deg, var(--desk-mid) 0%, var(--desk-dark) 75%);
+    overflow:hidden;
+    user-select:none;
+  }
+  /* the two faint eyes hidden in the wallpaper */
+  #eyes{
+    position:absolute;
+    top:15%; right:9%;
+    width:120px; height:40px;
+    pointer-events:none;
+    opacity:0;
+    animation: eyesFade 14s ease-in-out infinite;
+  }
+  #eyes .dot{
+    position:absolute; top:0; width:7px; height:7px; border-radius:50%;
+    background:var(--accent-purple-glow);
+    box-shadow:0 0 10px 2px var(--accent-purple-glow);
+  }
+  #eyes .dot.l{left:0;}
+  #eyes .dot.r{right:0;}
+  @keyframes eyesFade{
+    0%,88%{opacity:0;}
+    91%,95%{opacity:0.55;}
+    100%{opacity:0;}
+  }
+
+  /* ---------- desktop icons ---------- */
+  #icons{
+    position:absolute; top:18px; left:14px;
+    display:flex; flex-direction:column; gap:4px;
+    z-index:2;
+  }
+  .icon{
+    width:82px; padding:6px 4px; text-align:center; cursor:pointer;
+    border:1px solid transparent; border-radius:3px;
+  }
+  .icon:hover, .icon.selected{
+    background:rgba(90,140,220,0.28);
+    border:1px solid rgba(160,190,240,0.5);
+  }
+  .icon-glyph{
+    width:40px; height:34px; margin:0 auto 4px;
+    position:relative;
+  }
+  .icon-label{
+    color:#fff; font-size:11.5px; line-height:1.25;
+    text-shadow: 0 1px 2px #000, 0 0 6px rgba(0,0,0,.8);
+    word-wrap:break-word;
+  }
+  /* folder glyph */
+  .gl-folder{width:38px;height:28px;background:linear-gradient(180deg,#ffe27a,#f2c23a);
+    border:1px solid #a87c14; border-radius:0 3px 3px 3px; position:relative; margin-top:6px;}
+  .gl-folder::before{content:'';position:absolute; top:-6px; left:0; width:18px; height:7px;
+    background:#f2c23a; border:1px solid #a87c14; border-bottom:none; border-radius:3px 3px 0 0;}
+  .gl-folder.red{background:linear-gradient(180deg,#e78a8a,#c94b4b); border-color:#7a1f1f;}
+  .gl-folder.red::before{background:#c94b4b; border-color:#7a1f1f;}
+  /* text file glyph */
+  .gl-text{width:28px;height:34px;background:#fff;border:1px solid #8f8f8f; margin:0 auto;
+    clip-path: polygon(0 0, 70% 0, 100% 30%, 100% 100%, 0 100%);}
+  .gl-text::after{content:'';position:absolute; width:9px;height:9px; top:0; right:0;
+    background:#c9c9c9; clip-path: polygon(0 0, 100% 100%, 0 100%);}
+  .gl-text .lines{position:absolute; top:12px; left:4px; right:4px;}
+  .gl-text .lines span{display:block; height:2px; background:#b7b3a0; margin-bottom:3px;}
+  .gl-text.warn{border-color:#c94b4b;}
+  .gl-text.warn .lines span{background:#d99;}
+  /* doc glyph */
+  .gl-doc{width:28px;height:34px;background:#e9eefb;border:1px solid #4a6fb5; margin:0 auto; position:relative;
+    clip-path: polygon(0 0, 70% 0, 100% 30%, 100% 100%, 0 100%);}
+  .gl-doc .bar{position:absolute; top:9px; left:0; width:100%; height:9px; background:#2f5aa8;}
+  .gl-doc .bar span{color:#fff; font-size:6px; position:absolute; top:1px; left:5px; font-weight:bold;}
+  /* recycle bin */
+  .gl-bin{width:26px;height:30px; margin:2px auto 0; background:#b9c3cf; border:1px solid #5a6b7a; border-radius:0 0 4px 4px; position:relative;}
+  .gl-bin::before{content:'';position:absolute; top:-6px; left:-3px; width:32px; height:5px; background:#8fa0b0; border:1px solid #5a6b7a;}
+  /* computer */
+  .gl-comp{width:34px;height:26px; margin:4px auto 0; background:#dfe6ef; border:2px solid #5a7aa8; border-radius:2px; position:relative;}
+  .gl-comp::after{content:'';position:absolute; bottom:-7px; left:11px; width:12px; height:5px; background:#b9c3cf; border:1px solid #5a7aa8;}
+  /* IE globe */
+  .gl-ie{width:36px;height:36px;border-radius:50%; margin:0 auto;
+    background: radial-gradient(circle at 35% 30%, #6fb3ff, #1b5fd6 60%, #0a3d95);
+    border:1px solid #06285f; position:relative;}
+  .gl-ie::after{content:'e'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:#fff; font-family:Georgia,serif; font-weight:bold; font-size:20px; font-style:italic;}
+
+  /* ---------- windows ---------- */
+  .win{
+    position:absolute;
+    min-width:300px;
+    background:var(--win-body);
+    border:1px solid #0a3d95;
+    border-radius:6px 6px 3px 3px;
+    box-shadow:3px 5px 18px rgba(0,0,0,.55);
+    display:flex; flex-direction:column;
+    overflow:hidden;
+  }
+  .win.inactive{ border-color:#5a6b8a; }
+  .win-titlebar{
+    height:28px; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 4px 0 8px;
+    background:linear-gradient(180deg, var(--win-active-top), var(--win-active-bot));
+    cursor:default;
+  }
+  .win.inactive .win-titlebar{
+    background:linear-gradient(180deg, var(--win-inactive-top), var(--win-inactive-bot));
+  }
+  .win-title{
+    color:#fff; font-size:12.5px; font-weight:bold;
+    text-shadow:0 1px 1px rgba(0,0,0,.4);
+    display:flex; align-items:center; gap:6px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .win-title .ttl-glyph{width:16px; height:16px; flex:0 0 auto; transform:scale(0.42); transform-origin:top left; position:relative;}
+  .win-btns{display:flex; gap:3px;}
+  .win-btn{
+    width:20px; height:19px; border-radius:3px; border:1px solid rgba(255,255,255,.4);
+    background:linear-gradient(180deg,#5b8fe0,#2c5cc0);
+    color:#fff; font-size:11px; line-height:17px; text-align:center; cursor:pointer;
+    font-weight:bold;
+  }
+  .win-btn.close{background:linear-gradient(180deg,#e88,#c33);}
+  .win-btn:hover{filter:brightness(1.15);}
+  .win-body{
+    flex:1 1 auto; overflow:auto; background:var(--win-body);
+    padding:0;
+  }
+  .win-resizer{
+    position:absolute; width:14px; height:14px; right:0; bottom:0; cursor:nwse-resize;
+  }
+
+  /* folder listing */
+  .folder-view{ padding:12px; display:flex; flex-wrap:wrap; align-content:flex-start; gap:2px; background:var(--win-body); min-height:100%;}
+  .folder-item{ width:88px; padding:7px 4px; text-align:center; cursor:pointer; border:1px solid transparent; border-radius:3px;}
+  .folder-item:hover{ background:#cfe0fb; border-color:#7fa8e8; }
+  .folder-item .icon-glyph{ width:40px; margin-bottom:3px; }
+  .folder-item .icon-label{ color:#1a1a1a; font-size:11px; text-shadow:none; }
+
+  /* document/text views */
+  .doc-view{
+    background:var(--paper); color:var(--ink);
+    min-height:100%; padding:26px 34px;
+    font-family:'Courier New', Courier, monospace;
+    font-size:13.5px; line-height:1.7;
+    white-space:pre-wrap;
+  }
+  .doc-view.serif{
+    font-family:Georgia,'Times New Roman',serif;
+    font-size:14.5px; line-height:1.8;
+  }
+  .doc-view h1{
+    font-size:15px; margin:0 0 2px; font-family:Georgia,serif;
+  }
+  .doc-view .byline{ color:#6a6458; font-size:12px; margin-bottom:18px; font-family:Georgia,serif;}
+  .doc-view .redact{ color:#9a2f2f; font-style:italic; }
+
+  .transcript-line{ margin:0 0 10px; }
+  .transcript-speaker{ font-weight:bold; }
+  .transcript-meta{ color:#7a7460; font-size:12px; margin-bottom:16px; border-bottom:1px dashed #b7b09a; padding-bottom:10px;}
+  .transcript-stage{ color:#7a7460; font-style:italic; }
+
+  /* recycle bin empty */
+  .empty-note{ padding:40px; text-align:center; color:#666; font-size:12px; }
+
+  /* ---------- browser ---------- */
+  .browser-chrome{ background:#dce6f5; border-bottom:1px solid #9ab0d6; }
+  .browser-toolbar{ display:flex; align-items:center; gap:6px; padding:5px 6px; border-bottom:1px solid #9ab0d6; }
+  .browser-btn{
+    width:26px; height:24px; border-radius:4px; border:1px solid #8fa8d0; background:linear-gradient(180deg,#fff,#d6e2f5);
+    font-size:12px; color:#33517a; display:flex; align-items:center; justify-content:center;
+  }
+  .browser-urlbar{
+    flex:1; height:23px; border:1px inset #8fa8d0; background:#fff; border-radius:2px;
+    display:flex; align-items:center; padding:0 8px; font-size:12px; color:#222; font-family:Tahoma,sans-serif;
+  }
+  .browser-bookmarks{ display:flex; gap:4px; padding:4px 8px; flex-wrap:wrap; background:#eaf0fb; }
+  .bm{
+    font-size:11px; color:#25407a; background:#fff; border:1px solid #b6c8e6; border-radius:2px;
+    padding:2px 7px; cursor:pointer; display:flex; align-items:center; gap:4px;
+  }
+  .bm:hover{ background:#dbe7fb; }
+  .bm .bm-dot{ width:6px;height:6px;border-radius:50%; background:#6a93d6; }
+  .bm.dead{ color:#999; }
+  .bm.dead .bm-dot{ background:#999; }
+
+  .forum-page{ background:#fbfbf8; padding:0; font-family:Verdana, Tahoma, sans-serif; color:#222; min-height:100%; }
+  .forum-header{ background:linear-gradient(180deg,#3a2f52,#241d38); color:#e9def5; padding:14px 18px; }
+  .forum-header h2{ margin:0; font-size:17px; font-family:Georgia,serif;}
+  .forum-header .sub{ font-size:11px; color:#b7a6d6; margin-top:2px; }
+  .forum-crumbs{ background:#e9e4f2; padding:6px 18px; font-size:11px; color:#5a4a78; border-bottom:1px solid #cfc2e6;}
+  .thread-title{ padding:12px 18px 4px; font-size:14px; font-weight:bold; color:#2a2040; }
+  .post{ display:flex; border-top:1px solid #e2ddf0; }
+  .post-side{ width:150px; flex:0 0 auto; padding:12px; background:#f1eef8; border-right:1px solid #e2ddf0; }
+  .post-user{ font-weight:bold; color:#4a3878; font-size:12.5px; }
+  .post-meta{ font-size:10.5px; color:#8a7fa8; margin-top:6px; }
+  .post-body{ padding:12px 16px; font-size:12.5px; line-height:1.65; flex:1; }
+  .post-body p{ margin:0 0 8px; }
+  .post.op .post-body{ background:#faf8ff; }
+  .post-gap{ text-align:center; font-size:11px; color:#9a90b8; padding:8px; font-style:italic; background:#f6f4fb; border-top:1px solid #e2ddf0; }
+
+  .dead-link-page{ padding:60px 20px; text-align:center; font-family:Tahoma,sans-serif; color:#555; }
+  .dead-link-page h3{ color:#a33; }
+
+  /* usenet */
+  .usenet-page{ background:#fff; min-height:100%; font-family:'Courier New',monospace; color:#111; }
+  .usenet-head{ background:#eee; border-bottom:1px solid #ccc; padding:10px 16px; font-size:12px; color:#444; }
+  .usenet-head div{ margin-bottom:2px; }
+  .usenet-body{ padding:16px; font-size:12.5px; line-height:1.6; white-space:pre-wrap; margin:0; }
+
+  /* library catalog */
+  .lib-page{ background:#f4f7fb; min-height:100%; font-family:Tahoma,sans-serif; color:#1c2b3a; }
+  .lib-head{ background:linear-gradient(180deg,#274a75,#1a3355); color:#fff; padding:14px 18px; }
+  .lib-title{ font-size:14px; font-weight:bold; }
+  .lib-search{ font-size:11.5px; color:#cfe0f7; margin-top:6px; }
+  .lib-result{ display:flex; gap:16px; padding:18px; }
+  .lib-cover{ flex:0 0 auto; width:70px; height:96px; background:#8fa4bf; color:#fff; font-size:11px;
+    display:flex; align-items:center; justify-content:center; border:1px solid #5f7a9a; letter-spacing:1px; }
+  .lib-details{ flex:1; }
+  .lib-book-title{ font-size:13.5px; font-weight:bold; color:#193050; }
+  .lib-book-sub{ font-size:11.5px; color:#5a6b80; margin:3px 0 12px; }
+  .lib-table{ border-collapse:collapse; font-size:11.5px; }
+  .lib-table td{ border:1px solid #cdd8e6; padding:5px 9px; vertical-align:top; }
+  .lib-table td:first-child{ background:#e3ebf5; font-weight:bold; width:120px; }
+  .lib-status{ color:#a33; font-weight:bold; }
+
+  /* ---------- taskbar ---------- */
+  #taskbar{
+    position:absolute; left:0; right:0; bottom:0; height:34px;
+    background:linear-gradient(180deg, var(--taskbar-top), var(--taskbar-bot));
+    display:flex; align-items:center; z-index:9999;
+    border-top:1px solid #7fb3ff;
+  }
+  #start-btn{
+    height:26px; margin:0 4px; padding:0 12px 0 8px; border-radius:4px;
+    background:linear-gradient(180deg, var(--start-green-top), var(--start-green-bot));
+    color:#fff; font-weight:bold; font-style:italic; font-size:13px;
+    display:flex; align-items:center; gap:6px; cursor:pointer;
+    border:1px solid #1a5c1a;
+  }
+  #start-btn .flag{ width:14px; height:14px; background:
+      conic-gradient(#f25022 0 90deg, #7fba00 90deg 180deg, #00a4ef 180deg 270deg, #ffb900 270deg 360deg);
+      border-radius:2px; }
+  #taskbar-sep{ width:1px; align-self:stretch; margin:5px 4px; background:rgba(255,255,255,.3); }
+  #taskbar-items{ flex:1; display:flex; gap:4px; height:100%; align-items:center; overflow:hidden; }
+  .taskbar-item{
+    height:25px; max-width:190px; padding:0 10px; border-radius:3px;
+    background:linear-gradient(180deg,#3f7fe0,#1c4fb0);
+    border:1px solid #1a3f8a;
+    color:#fff; font-size:11.5px; display:flex; align-items:center; gap:6px;
+    cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .taskbar-item.active{ background:linear-gradient(180deg,#173e8f,#0c2c6e); box-shadow: inset 0 0 6px rgba(0,0,0,.5); }
+  .taskbar-item .ttl-glyph{ transform:scale(0.4); transform-origin:top left; width:16px; height:16px; position:relative; }
+  #tray{
+    margin-left:auto; height:100%; display:flex; align-items:center; gap:10px;
+    padding:0 12px; background:rgba(0,0,0,.12); border-left:1px solid rgba(255,255,255,.25);
+    color:#eaf1ff; font-size:11.5px;
+  }
+
+  #mobile-note{
+    display:none; position:fixed; inset:0; z-index:99999; background:#0b0d14; color:#cfd6e8;
+    align-items:center; justify-content:center; text-align:center; padding:30px; font-family:Tahoma,sans-serif;
+  }
+  @media (max-width: 680px){
+    #mobile-note{ display:flex; }
+  }
+</style>
+</head>
+<body>
+
+<div id="mobile-note">
+  <div>
+    <div style="font-size:15px; margin-bottom:10px; letter-spacing:.5px;">NATHAN_COLE_DESKTOP.exe</div>
+    <div style="font-size:13px; line-height:1.6; color:#9aa4c0;">This research archive is built as a full desktop environment and needs a wider screen to run properly.<br><br>Please view on a tablet or computer.</div>
+  </div>
+</div>
+
+<div id="desktop">
+  <div id="eyes"><div class="dot l"></div><div class="dot r"></div></div>
+
+  <div id="icons">
+    <div class="icon" data-open="mycomputer">
+      <div class="icon-glyph"><div class="gl-comp"></div></div>
+      <div class="icon-label">My Computer</div>
+    </div>
+    <div class="icon" data-open="mydocs">
+      <div class="icon-glyph"><div class="gl-folder"></div></div>
+      <div class="icon-label">My Documents</div>
+    </div>
+    <div class="icon" data-open="monitorfolder">
+      <div class="icon-glyph"><div class="gl-folder red"></div></div>
+      <div class="icon-label">the_monitor (Nathan's research folder — do not touch)</div>
+    </div>
+    <div class="icon" data-open="thesisdraft">
+      <div class="icon-glyph"><div class="gl-doc"><div class="bar"><span>W</span></div></div></div>
+      <div class="icon-label">thesis_draft_v3.doc</div>
+    </div>
+    <div class="icon" data-open="recyclebin">
+      <div class="icon-glyph"><div class="gl-bin"></div></div>
+      <div class="icon-label">Recycle Bin</div>
+    </div>
+    <div class="icon" data-open="browser">
+      <div class="icon-glyph"><div class="gl-ie"></div></div>
+      <div class="icon-label">Internet Explorer</div>
+    </div>
+  </div>
+
+  <div id="taskbar">
+    <div id="start-btn"><div class="flag"></div>start</div>
+    <div id="taskbar-sep"></div>
+    <div id="taskbar-items"></div>
+    <div id="tray"><span id="clock">--:--</span></div>
+  </div>
+</div>
+
+<script>
+/* ======================= file system ======================= */
+const FS = {
+  mycomputer: { type:'special', name:'My Computer', icon:'comp',
+    body: `<div class="folder-view">
+      <div class="folder-item"><div class="icon-glyph"><div class="gl-folder"></div></div><div class="icon-label">Local Disk (C:)</div></div>
+      <div class="folder-item"><div class="icon-glyph"><div class="gl-folder"></div></div><div class="icon-label">Zip Drive (D:)</div></div>
+    </div>` },
+
+  recyclebin: { type:'special', name:'Recycle Bin', icon:'bin',
+    body: `<div class="empty-note">The Recycle Bin is empty.</div>` },
+
+  thesisdraft: { type:'doc', name:'thesis_draft_v3.doc', icon:'doc',
+    body: `<div class="doc-view serif">
+<h1>Environmental and Interpersonal Triggers in Treatment-Resistant Schizophrenia:<br>A Single-Subject Case Study</h1>
+<div class="byline">Nathan Cole — Undergraduate Thesis, Draft 3 — Dept. of Psychology</div>
+
+Contemporary psychiatric literature treats treatment-resistant schizophrenia as largely biological in origin, yet a meaningful minority of case histories exhibit onset patterns tied to specific, documented traumatic events. This thesis examines one such case: a fifty-three-year-old male, referred to throughout as "Subject W," institutionalized for eighteen years following a series of family deaths that investigators ultimately attributed to a decades-long persecutory delusion involving a recurring hallucinatory figure.
+
+The clinical record's initial framing of Subject W leaned heavily on the well-documented relationship between psychotic disorders and impaired decision-making. Beck and Ballon note that schizophrenia "may be associated with diminished capacity to make certain kinds of decisions under certain circumstances, especially if the decision intersects with specific delusional ideas," and Subject W's court-appointed evaluators cited language nearly identical to this when explaining his refusal, across three separate competency hearings, to accept any account of his family's deaths other than his own. Escobedo-Aedo et al. go further, describing a "jumping to conclusions" bias that is measurably more pronounced in psychotic patients than in controls — drawing a firm conclusion from evidence that would not satisfy a neutral observer. It is a reasonable diagnostic lens. I have also come to notice that it describes, with uncomfortable precision, the process by which Subject W was convicted.
+
+Acosta-Lopez et al. report that patients with schizophrenia show a diminished capacity "to conceive alternatives in procedures, strategies, and responses to the same situations," which Subject W's file has invoked repeatedly to explain his inability, even now, to entertain any alternative to his own account of events. I want to be careful here, because I recognize the shape of what I am about to write: Subject W's account has not required revision in forty-four years because it has not needed one. Rigidity is not, on its own, evidence of a healthy reasoning process — but neither is it evidence of an unhealthy one, and I am no longer sure my sources let me claim either with the confidence my earlier drafts did.
+
+The isolation itself deserves separate treatment. Fett et al. suggest that reduced social contact in cases like this "could be the consequence of other factors... such as poor social cognitive skills and theory of mind, difficulties to establish trust, or social stigma" rather than a patient's own preference for solitude, and Fulford and Holt are more direct still, noting that people living with serious psychotic disorders "consistently cite 'improved relationships' as a key treatment goal" — that the isolation is not chosen so much as imposed by a world that has already decided how to categorize them, producing what the authors term a "hypervigilance to social threat/rejection." Eighteen years of documentation support Subject W's isolation as involuntary in exactly this sense. What the literature did not prepare me for was how quickly that isolation reversed the moment someone treated him as a person worth knowing rather than a case worth closing.
+
+What distinguishes Subject W from comparable cases is the remarkable consistency of his account across nearly two decades of clinical documentation. Where most persecutory delusions evolve, fragment, or incorporate new material over time, Subject W's description of the entity he calls "the Monitor" has remained essentially unchanged since it was first recorded in 1959 — a consistency this author initially intended to present as evidence of the delusion's structural rigidity.
+
+I am no longer certain that is what it is evidence of.
+
+Standard clinical frameworks assume a persecutory delusion functions, at least in part, as a narrative solution to unbearable loss — the mind constructs a coherent villain because a coherent villain is easier to survive than a universe with no organizing cause at all. Under this model, Subject W's account should have drifted over time to accommodate whatever new losses entered his life. It did not drift. When his mother died in 1984, his description of the entity did not expand to explain or incorporate her death; if anything, he became more reluctant to discuss the entity at all in the months surrounding that loss, which is nearly the inverse of what the standard model predicts.
+
+I raised this discrepancy with Dr. Albrecht in supervision and was told, not unkindly, that consistency in a delusion is not evidence against its status as a delusion — that some patients simply construct a more durable fiction than others, and that Subject W, isolated for eighteen years with no outside contact to challenge or reshape his account, would have had every opportunity to rehearse it into permanence. This is a reasonable clinical position, and it is the one my sources support most cleanly. I noted it in my methodology section and moved on.
+
+What I have not been able to note anywhere in this document, because there is no acceptable academic language for it, is the growing list of independent, geographically and temporally unconnected sources that describe the same figure in the same terms, using language that predates any modern account Subject W could plausibly have encountered. I am supposed to be studying the reliability of one man's memory. I am no longer confident that is the study I am conducting.
+
+<span class="redact">[DRAFT ENDS HERE — rewrite intro before submission. Do NOT let Albrecht read this version.]</span>
+
+<div class="byline" style="margin-top:22px; font-size:11px;">Works cited on file separately — Beck &amp; Ballon; Escobedo-Aedo et al.; Acosta-Lopez et al.; Fett et al.; Fulford &amp; Holt.</div>
+</div>` },
+
+  mydocs: { type:'folder', name:'My Documents', icon:'folder', children:['diary','thesisfolder'] },
+  thesisfolder: { type:'folder', name:'Thesis Research', icon:'folder', children:['thesisdraft2'] },
+  thesisdraft2: { type:'doc', name:'thesis_draft_v3.doc (copy)', icon:'doc', bodyRef:'thesisdraft' },
+
+  diary: { type:'text', name:'diary.txt', icon:'text',
+    body: `<div class="doc-view">
+<span class="transcript-meta">C:\\MyDocs\\diary.txt</span>
+
+Sept 14 —
+Picked my thesis topic today. Told Albrecht I want to do a single-subject case study instead of the standard lit review. He asked why. I said something about wanting to "do something that matters" and he gave me this look like he already knew the real reason. He probably does. Everyone in the department knows about Dad by now, I think.
+
+Nov 2 —
+Approval came through. Access request for Frank Walker was approved on the third try — Albrecht says W. hasn't spoken to an outside researcher in over a decade. First session is next Tuesday. I keep telling myself this is just a thesis.
+
+Jan 21 —
+Third session. He told me to leave again. Not rude about it exactly, just — done. "You don't know what you're asking for, kid." I wrote three pages of notes in the parking lot afterward and none of them were for the thesis.
+
+Mar 3 —
+He talked today. Actually talked. Asked me about school, if I was seeing anyone. I mentioned Emily from the library and he laughed for the first time since I've known him. Told me I was doing it all wrong and then told me exactly what to say to her. He was right. She said yes.
+
+Apr 19 —
+He showed me how to properly tape a drywall seam today, of all things, using a broom handle and a picture of a wall he drew on a legal pad. I don't know why that's the thing that got me. My dad never got to teach me anything like that. I didn't say that part out loud.
+
+Jun 2 —
+Started pulling library microfiche this week for anything historical that matches what he describes. Found something in a monastic record translation that made my stomach drop. Not putting details here yet. Need to be sure I'm not just seeing what I want to see.
+
+Jun 24 —
+Told Albrecht about the historical cross-references today, in the vaguest possible terms, framed as "folklore parallels a patient may have absorbed culturally." He seemed pleased — said it was a strong methodological angle for the thesis. He has no idea I've stopped believing my own framing of it.
+
+Jul 9 —
+Asked Frank today if he'd ever tried to warn anyone else, before me. He went quiet for a long time and then said something I haven't been able to stop turning over: "Warning people doesn't work. It just uses up the time you've got left with them faster." I didn't ask what he meant by that. I think I was scared of the answer.
+
+Jul 30 —
+I keep thinking I saw something in my room last night. Just for a second, by the door. I didn't tell anyone. It's nothing. It has to be nothing. I'm exhausted and I've been reading about this stuff for ten hours a day, of course my brain is doing this.
+
+It's nothing.
+
+Aug 15 —
+Found Frank's sister. Patricia Hensley, married name, living two towns over. Haven't called yet. Don't know if I'm going to. Part of me wants an outside perspective for the thesis. The rest of me is afraid of exactly what she's going to tell me, and afraid of what it'll do to how I look at him afterward.
+</div>` },
+
+  monitorfolder: { type:'folder', name:'the_monitor', icon:'folder-red',
+    children:['sightings','familyhistory','transcriptsfolder','donotopen'] },
+
+  sightings: { type:'text', name:'sightings_timeline.txt', icon:'text',
+    body: `<div class="doc-view">
+<span class="transcript-meta">Historical cross-reference — compiled by N.C., not for thesis submission</span>
+
+1347–1351, region unconfirmed (Black Death era) — Monastic record, translated excerpt: "...a tall, burned thing stood at the wood's edge and watched as we buried the third of the brothers that week. It did not approach. Three embers, purple, where its eyes should sit."
+
+1666, London — Private diary, cross-referenced with Great Fire accounts: "...a figure, too tall by half, stood in the ash of the lane and did not move even as the fire came near to it. I did not tell my wife what I saw."
+
+1918, town withheld pending further verification — Nurse's personal letter, influenza ward: "...the watcher, as the other girls have taken to calling him, was present again last night. Three deathbeds this week, and he at each of them, though no one summoned him and no one can say who let him in."
+
+1943, POW camp memoir, published privately 1971 — "...among the men there was talk of a tall figure seen at the fence line on the worst nights. I dismissed it as the kind of story men tell each other to have something to fear besides the guards. I no longer dismiss it."
+
+1959–present — Subject W's account. First recorded age 9. Description unchanged across 44 years of documentation.
+
+—
+
+These aren't the same story getting retold with the details changed by time and distance. The details are too specific, too consistent, across sources that could not possibly have known about one another. I don't know what to do with that yet.
+</div>` },
+
+  familyhistory: { type:'text', name:'family_history_report.txt', icon:'text',
+    body: `<div class="doc-view">
+<span class="transcript-meta">WALKER FAMILY — TIMELINE OF DEATHS<br>Compiled from county records, obituaries, and session transcripts. Working document.</span>
+
+1976 — Diane Foster (fiancée). Ruled suicide. Six days before the wedding.
+
+1980 — Douglas Braddock (bandmate, bass). Overdose.
+
+1981/82 — Anthony "Tony" Ferraro (bandmate, drums). Overdose.
+
+1982/83 — Walter Walker (father). Fall from roof, broken neck. Frank present.
+
+1983 — Vincent Santoro (bandmate, guitar). Found dead following night of drinking. Ruled alcohol-related.
+
+1984 — Helen Walker (mother). Liver failure. Onset of alcoholism dated to husband's death.
+
+Early 1985 — Richard Walker (brother). Construction site accident. Frank present.
+
+Mid 1985 — Sandra Reyes (bandmate, vocals). Frank charged, found not guilty by reason of insanity. Institutionalized same year.
+
+—
+
+Seven deaths. Nine years. One family. And as far as I can tell, I'm the first person besides a defense psychiatrist who's ever put all of these next to each other on the same page.
+</div>` },
+
+  donotopen: { type:'text-warn', name:'DO_NOT_OPEN.txt', icon:'text-warn',
+    body: `<div class="doc-view">
+if you're reading this it's probably 3am again and you should go to sleep.
+
+whatever you think you saw, it can wait until morning.
+
+— N.
+</div>` },
+
+  transcriptsfolder: { type:'folder', name:'interview_transcripts', icon:'folder',
+    children:['t1','t2','t3','t4'] },
+
+  t1: { type:'text', name:'session_01_03.11.txt', icon:'text',
+    body: `<div class="doc-view">
+<span class="transcript-meta">TRANSCRIPT — SESSION 1 — AUDIO CASSETTE — TRANSCRIBED BY N. COLE</span>
+
+<p class="transcript-line"><span class="transcript-speaker">N:</span> Mr. Walker, thank you for agreeing to—</p>
+<p class="transcript-line"><span class="transcript-speaker">W:</span> I didn't agree to anything. They told me you were coming.</p>
+<p class="transcript-line"><span class="transcript-speaker">N:</span> I can leave if you'd rather—</p>
+<p class="transcript-line"><span class="transcript-stage">[silence, 14 sec]</span></p>
+<p class="transcript-line"><span class="transcript-speaker">W:</span> No. Sit down. Everybody leaves eventually anyway. Might as well get something out of it first.</p>
+<p class="transcript-line"><span class="transcript-speaker">N:</span> I wanted to ask about the events leading up to—</p>
+<p class="transcript-line"><span class="transcript-speaker">W:</span> You want to ask about the Monitor. Just say it. Everybody wants to ask about the Monitor and nobody wants to say the word.</p>
+<p class="transcript-line"><span class="transcript-speaker">N:</span> Alright. Tell me about the Monitor.</p>
+<p class="transcript-line"><span class="transcript-speaker">W:</span> No. Come back when you stop looking at me the way the rest of them do.</p>
+<p class="transcript-line"><span class="transcript-stage">[SESSION ENDED — 6 MINUTES]</span></p>
+</div>` },
+
+  t2: { type:'text', name:'session_04_04.02.txt', icon:'text',
+    body: `<div class="doc-view">
+<span class="transcript-meta">TRANSCRIPT — SESSION 4 — AUDIO CASSETTE — TRANSCRIBED BY N. COLE</span>
+
+<p class="transcript-line"><span class="transcript-speaker">W:</span> You're still coming back.</p>
+<p class="transcript-line"><span class="transcript-speaker">N:</span> I'm still coming back.</p>
+<p class="transcript-line"><span class="transcript-stage">[long pause]</span></p>
+<p class="transcript-line"><span class="transcript-speaker">W:</span> Fine. Ask one question. A real one.</p>
+<p class="transcript-line"><span class="transcript-speaker">N:</span> Did it ever leave you alone? Even once?</p>
+<p class="transcript-line"><span class="transcript-speaker">W:</span> [long pause] Once. For about four years, when I was young and stupid enough to think it had gotten bored of me.</p>
+<p class="transcript-line"><span class="transcript-speaker">N:</span> What happened after the four years?</p>
+<p class="transcript-line"><span class="transcript-speaker">W:</span> That's two questions. Time's up, kid.</p>
+</div>` },
+
+  t3: { type:'text', name:'session_08_05.14.txt', icon:'text',
+    body: `<div class="doc-view">
+<span class="transcript-meta">TRANSCRIPT — SESSION 8 — AUDIO CASSETTE — TRANSCRIBED BY N. COLE</span>
+
+<p class="transcript-line"><span class="transcript-speaker">N:</span> Can I ask about your sister?</p>
+<p class="transcript-line"><span class="transcript-speaker">W:</span> No.</p>
+<p class="transcript-line"><span class="transcript-stage">[silence, 40 sec]</span></p>
+<p class="transcript-line"><span class="transcript-speaker">W:</span> Pat. Her name's Pat. Was always going to marry well and get out of this whole business and she did, so good for her. I don't blame her for what she said in that courtroom. I'd have said the same thing, standing where she stood, looking at what she was looking at.</p>
+<p class="transcript-line"><span class="transcript-speaker">N:</span> Do you think she'd talk to me?</p>
+<p class="transcript-line"><span class="transcript-speaker">W:</span> I think you should leave that alone. But you won't. You've got that look on you already.</p>
+</div>` },
+
+  t4: { type:'text', name:'session_11_07.09.txt', icon:'text',
+    body: `<div class="doc-view">
+<span class="transcript-meta">TRANSCRIPT — SESSION 11 — AUDIO CASSETTE — TRANSCRIBED BY N. COLE</span>
+
+<p class="transcript-line"><span class="transcript-speaker">W:</span> You still seeing that girl? Emily?</p>
+<p class="transcript-line"><span class="transcript-speaker">N:</span> We're just friends.</p>
+<p class="transcript-line"><span class="transcript-speaker">W:</span> [laughs] That's what I said about Diane for two years. Didn't work out well for me either, for what it's worth, but for different reasons.</p>
+<p class="transcript-line"><span class="transcript-speaker">N:</span> Can I ask you something that's not for the thesis?</p>
+<p class="transcript-line"><span class="transcript-speaker">W:</span> Go on.</p>
+<p class="transcript-line"><span class="transcript-speaker">N:</span> Do you wish you'd never told anyone? About what happened?</p>
+<p class="transcript-line"><span class="transcript-stage">[long pause]</span></p>
+<p class="transcript-line"><span class="transcript-speaker">W:</span> Every day for eighteen years. And then you showed up anyway and I stopped minding so much. Don't put that in your paper.</p>
+<p class="transcript-line"><span class="transcript-speaker">N:</span> I won't.</p>
+<p class="transcript-line"><span class="transcript-speaker">W:</span> You will. That's fine too.</p>
+<p class="transcript-line"><span class="transcript-stage">[SESSION ENDED — 41 MINUTES]</span></p>
+</div>` },
+};
+
+/* ======================= glyph rendering ======================= */
+function glyphHTML(icon){
+  switch(icon){
+    case 'folder': return `<div class="gl-folder"></div>`;
+    case 'folder-red': return `<div class="gl-folder red"></div>`;
+    case 'text': return `<div class="gl-text"><div class="lines"><span></span><span></span><span></span></div></div>`;
+    case 'text-warn': return `<div class="gl-text warn"><div class="lines"><span></span><span></span><span></span></div></div>`;
+    case 'doc': return `<div class="gl-doc"><div class="bar"><span>W</span></div></div>`;
+    case 'comp': return `<div class="gl-comp"></div>`;
+    case 'bin': return `<div class="gl-bin"></div>`;
+    case 'browser': return `<div class="gl-ie"></div>`;
+    default: return `<div class="gl-text"></div>`;
+  }
+}
+
+/* ======================= window manager ======================= */
+let zTop = 10;
+const openWins = {}; // id -> {el, taskbarEl}
+let winCounter = 0;
+
+function bringToFront(id){
+  Object.values(openWins).forEach(w=>{
+    w.el.classList.add('inactive');
+    w.taskbarEl.classList.remove('active');
+  });
+  zTop++;
+  openWins[id].el.style.zIndex = zTop;
+  openWins[id].el.classList.remove('inactive');
+  openWins[id].taskbarEl.classList.add('active');
+}
+
+function closeWindow(id){
+  if(!openWins[id]) return;
+  openWins[id].el.remove();
+  openWins[id].taskbarEl.remove();
+  delete openWins[id];
+}
+
+function makeDraggable(winEl, handleEl){
+  let dragging=false, ox=0, oy=0;
+  handleEl.addEventListener('mousedown', (e)=>{
+    if(e.target.closest('.win-btn')) return;
+    dragging = true;
+    ox = e.clientX - winEl.offsetLeft;
+    oy = e.clientY - winEl.offsetTop;
+    winEl.style.zIndex = ++zTop;
+    document.body.style.cursor='default';
+  });
+  window.addEventListener('mousemove',(e)=>{
+    if(!dragging) return;
+    let nx = e.clientX - ox;
+    let ny = e.clientY - oy;
+    ny = Math.max(0, Math.min(ny, window.innerHeight-34-20));
+    winEl.style.left = nx+'px';
+    winEl.style.top = ny+'px';
+  });
+  window.addEventListener('mouseup',()=>{ dragging=false; });
+}
+
+function openWindow(opts){
+  // opts: {id, title, icon, width, height, x, y, bodyHTML, kind}
+  if(openWins[opts.id]){ bringToFront(opts.id); return; }
+
+  const win = document.createElement('div');
+  win.className='win';
+  win.style.left = (opts.x!==undefined?opts.x:80+winCounter*24)+'px';
+  win.style.top = (opts.y!==undefined?opts.y:50+winCounter*20)+'px';
+  win.style.width = (opts.width||460)+'px';
+  win.style.height = (opts.height||360)+'px';
+  winCounter++;
+
+  win.innerHTML = `
+    <div class="win-titlebar">
+      <div class="win-title"><span class="ttl-glyph">${glyphHTML(opts.icon)}</span>${opts.title}</div>
+      <div class="win-btns">
+        <div class="win-btn min">_</div>
+        <div class="win-btn max">▢</div>
+        <div class="win-btn close">x</div>
+      </div>
+    </div>
+    <div class="win-body">${opts.bodyHTML}</div>
+    <div class="win-resizer"></div>
+  `;
+  document.getElementById('desktop').appendChild(win);
+
+  const titlebar = win.querySelector('.win-titlebar');
+  makeDraggable(win, titlebar);
+  win.addEventListener('mousedown', ()=>bringToFront(opts.id));
+
+  win.querySelector('.win-btn.close').addEventListener('click', (e)=>{ e.stopPropagation(); closeWindow(opts.id); });
+  win.querySelector('.win-btn.min').addEventListener('click', (e)=>{
+    e.stopPropagation();
+    win.style.display = win.style.display==='none' ? 'flex' : 'none';
+  });
+  win.querySelector('.win-btn.max').addEventListener('click', (e)=>{
+    e.stopPropagation();
+    if(win.dataset.max==='1'){
+      win.style.width=win.dataset.pw; win.style.height=win.dataset.ph;
+      win.style.left=win.dataset.px; win.style.top=win.dataset.py;
+      win.dataset.max='0';
+    } else {
+      win.dataset.pw=win.style.width; win.dataset.ph=win.style.height;
+      win.dataset.px=win.style.left; win.dataset.py=win.style.top;
+      win.style.left='4px'; win.style.top='4px';
+      win.style.width=(window.innerWidth-8)+'px';
+      win.style.height=(window.innerHeight-42)+'px';
+      win.dataset.max='1';
+    }
+  });
+
+  // resizing
+  let resizing=false, rox=0, roy=0, rw=0, rh=0;
+  const resizer = win.querySelector('.win-resizer');
+  resizer.addEventListener('mousedown', (e)=>{
+    resizing=true; rox=e.clientX; roy=e.clientY;
+    rw=win.offsetWidth; rh=win.offsetHeight;
+    e.stopPropagation();
+  });
+  window.addEventListener('mousemove',(e)=>{
+    if(!resizing) return;
+    win.style.width = Math.max(300, rw + (e.clientX-rox))+'px';
+    win.style.height = Math.max(160, rh + (e.clientY-roy))+'px';
+  });
+  window.addEventListener('mouseup',()=>{ resizing=false; });
+
+  // taskbar entry
+  const tb = document.createElement('div');
+  tb.className='taskbar-item active';
+  tb.innerHTML = `<span class="ttl-glyph">${glyphHTML(opts.icon)}</span><span>${opts.title}</span>`;
+  tb.addEventListener('click', ()=>{
+    if(win.style.display==='none'){ win.style.display='flex'; bringToFront(opts.id); }
+    else if(openWins[opts.id].el.classList.contains('inactive')===false && zTop === parseInt(win.style.zIndex||0)){
+      win.style.display='none';
+    } else { bringToFront(opts.id); }
+  });
+  document.getElementById('taskbar-items').appendChild(tb);
+
+  openWins[opts.id] = {el:win, taskbarEl:tb};
+  bringToFront(opts.id);
+}
+
+/* ======================= folder rendering ======================= */
+function renderFolder(items){
+  return `<div class="folder-view">` + items.map(id=>{
+    const f = FS[id];
+    return `<div class="folder-item" data-fsopen="${id}">
+      <div class="icon-glyph">${glyphHTML(f.icon)}</div>
+      <div class="icon-label">${f.name}</div>
+    </div>`;
+  }).join('') + `</div>`;
+}
+
+function openFSItem(id){
+  const f = FS[id];
+  if(!f) return;
+  if(f.type==='folder'){
+    openWindow({id, title:f.name, icon:f.icon, width:480, height:340, bodyHTML: renderFolder(f.children)});
+    attachFolderHandlers(id);
+  } else if (f.type==='special'){
+    openWindow({id, title:f.name, icon:f.icon, width:420, height:300, bodyHTML:f.body});
+  } else {
+    const body = f.bodyRef ? FS[f.bodyRef].body : f.body;
+    openWindow({id, title:f.name, icon:f.icon, width:520, height:440, bodyHTML: body});
+  }
+}
+
+function attachFolderHandlers(id){
+  const winEl = openWins[id].el;
+  winEl.querySelectorAll('[data-fsopen]').forEach(el=>{
+    let clicks=0;
+    el.addEventListener('click', ()=>{
+      clicks++;
+      if(clicks===1){ setTimeout(()=>{
+        if(clicks===1){ /* single click: select */ }
+        else { openFSItem(el.dataset.fsopen); }
+        clicks=0;
+      }, 260); }
+    });
+  });
+}
+
+/* ======================= browser ======================= */
+function openBrowser(){
+  const id='browser';
+  if(openWins[id]){ bringToFront(id); return; }
+  const body = `
+    <div class="browser-chrome">
+      <div class="browser-toolbar">
+        <div class="browser-btn">&#8592;</div>
+        <div class="browser-btn">&#8594;</div>
+        <div class="browser-btn">&#8635;</div>
+        <div class="browser-urlbar" id="urlbar">http://www.paranormal-realm.net/forums/viewtopic.php?t=4471</div>
+        <div class="browser-btn">Go</div>
+      </div>
+      <div class="browser-bookmarks">
+        <div class="bm" data-bm="forum"><span class="bm-dot"></span>paranormal-realm.net</div>
+        <div class="bm" data-bm="usenet"><span class="bm-dot"></span>alt.folklore.ghost-stories</div>
+        <div class="bm" data-bm="library"><span class="bm-dot"></span>county library catalog</div>
+        <div class="bm dead" data-bm="dead"><span class="bm-dot"></span>???</div>
+      </div>
+    </div>
+    <div class="forum-page" id="forum-page">${forumHTML()}</div>
+  `;
+  openWindow({id, title:'paranormal-realm.net — the watcher / tall guy purple eyes...', icon:'browser', width:620, height:480, x:120, y:40, bodyHTML:body});
+  const winEl = openWins[id].el;
+  winEl.querySelectorAll('.bm').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const page = winEl.querySelector('#forum-page');
+      const urlbar = winEl.querySelector('#urlbar');
+      const kind = b.dataset.bm;
+      if(kind==='dead'){
+        page.innerHTML = `<div class="dead-link-page"><h3>This page cannot be displayed</h3><div>The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.</div></div>`;
+        urlbar.textContent = 'http://www.geocities.com/~nightowl_kt/dont_click_this/';
+      } else if(kind==='usenet'){
+        page.innerHTML = usenetHTML();
+        urlbar.textContent = 'news://alt.folklore.ghost-stories';
+      } else if(kind==='library'){
+        page.innerHTML = libraryHTML();
+        urlbar.textContent = 'http://opac.co.countylibrary.gov/search?q=watcher+entity+folklore';
+      } else {
+        page.innerHTML = forumHTML();
+        urlbar.textContent = 'http://www.paranormal-realm.net/forums/viewtopic.php?t=4471';
+      }
+    });
+  });
+}
+
+function forumHTML(){
+  return `
+    <div class="forum-header">
+      <h2>paranormal-realm.net</h2>
+      <div class="sub">"you're not imagining it" — est. 2001</div>
+    </div>
+    <div class="forum-crumbs">Forums &rsaquo; Sightings &amp; Encounters &rsaquo; General Discussion</div>
+    <div class="thread-title">the watcher / tall guy purple eyes — anyone else??? (25 replies)</div>
+
+    <div class="post op">
+      <div class="post-side"><div class="post-user">nightowl_kt</div><div class="post-meta">Posted: Tue Feb 18, 2003 11:47 pm</div></div>
+      <div class="post-body"><p>ok this is gonna sound insane but i need to know if anyone else has seen this. tall guy, way too tall, skin looks burned/charcoal, doesn't move, just watches from like the edge of your vision. eyes are purple. i saw him twice in the same week standing in my backyard treeline and i havent slept right since. anyone else???</p></div>
+    </div>
+    <div class="post">
+      <div class="post-side"><div class="post-user">GraveDigger_Pete</div><div class="post-meta">Posted: Wed Feb 19, 2003 12:03 am</div></div>
+      <div class="post-body"><p>ur being visited by "the shadow people," tons of stories like this, look it up. classic sleep paralysis tbh</p></div>
+    </div>
+    <div class="post">
+      <div class="post-side"><div class="post-user">nightowl_kt</div><div class="post-meta">Posted: Wed Feb 19, 2003 12:19 am</div></div>
+      <div class="post-body"><p>im not asleep when it happens. thats the thing.</p></div>
+    </div>
+    <div class="post">
+      <div class="post-side"><div class="post-user">MothRnAuroraB</div><div class="post-meta">Posted: Wed Feb 19, 2003 1:07 am</div></div>
+      <div class="post-body"><p>following this thread. seen something similar near my grandfather's old property, never told anyone bc it sounds crazy but the "too tall" part is exactly right, like your brain tries to correct the proportions and can't</p></div>
+    </div>
+    <div class="post">
+      <div class="post-side"><div class="post-user">GraveDigger_Pete</div><div class="post-meta">Posted: Wed Feb 19, 2003 8:44 am</div></div>
+      <div class="post-body"><p>ok fine maybe not sleep paralysis. still think theres a mundane explanation for 90% of these threads but this one's got me a lil freaked ngl</p></div>
+    </div>
+    <div class="post">
+      <div class="post-side"><div class="post-user">quietwatcher_99</div><div class="post-meta">Posted: Thu Feb 20, 2003 2:15 am</div></div>
+      <div class="post-body"><p>i debated posting this for a long time. someone in my family had an encounter, wont say who, wont say when. i will say it was never about hurting the person who saw it. it was always about someone close to them. figured that's worth putting here even if nobody believes me.</p></div>
+    </div>
+    <div class="post">
+      <div class="post-side"><div class="post-user">nightowl_kt</div><div class="post-meta">Posted: Thu Feb 20, 2003 2:31 am</div></div>
+      <div class="post-body"><p>quietwatcher what do u mean "about someone close to them" can u say more</p></div>
+    </div>
+    <div class="post">
+      <div class="post-side"><div class="post-user">quietwatcher_99</div><div class="post-meta">Posted: Thu Feb 20, 2003 2:58 am</div></div>
+      <div class="post-body"><p>no. sorry. shouldn't have said that much already. deleting this account after tonight, good luck to all of you</p></div>
+    </div>
+    <div class="post-gap">— account "quietwatcher_99" no longer exists —</div>
+    <div class="post">
+      <div class="post-side"><div class="post-user">cassettegirl_85</div><div class="post-meta">Posted: Fri Feb 21, 2003 9:52 pm</div></div>
+      <div class="post-body"><p>my grandma used to tell a story just like this from the old country. she called him something else but the description is exactly the same — purple eyes, doesn't move, watches. she said don't ever let him see that you're scared. i always figured it was just an old superstition until i read this thread.</p></div>
+    </div>
+    <div class="post">
+      <div class="post-side"><div class="post-user">nightowl_kt</div><div class="post-meta">Posted: Fri Feb 21, 2003 10:14 pm</div></div>
+      <div class="post-body"><p>did ur grandma ever say what happens if he DOES see that ur scared</p></div>
+    </div>
+    <div class="post-gap">— cassettegirl_85 never replied to this thread again —</div>
+    <div class="post">
+      <div class="post-side"><div class="post-user">Bramble_and_Co</div><div class="post-meta">Posted: Sun Mar 2, 2003 6:20 pm</div></div>
+      <div class="post-body"><p>lurker, first post. read this whole thread twice now. not going to describe what i've seen but i want to say something to OP: it gets quieter for a while and then it doesn't. don't mistake the quiet part for it being over.</p></div>
+    </div>
+    <div class="post">
+      <div class="post-side"><div class="post-user">nightowl_kt</div><div class="post-meta">Posted: Sun Mar 2, 2003 6:47 pm</div></div>
+      <div class="post-body"><p>great. cool. love that for me.</p></div>
+    </div>
+    <div class="post">
+      <div class="post-side"><div class="post-user">nightowl_kt</div><div class="post-meta">Posted: Sat Mar 15, 2003 3:41 am</div></div>
+      <div class="post-body"><p>hasn't been back in a few weeks. thought it was over. woke up an hour ago and my tape recorder — the one i leave running by the bed — was on, even though i don't remember turning it on. not gonna listen to it tonight.</p><p>i don't think i'm gonna post here anymore. if anyone else is going through this, just — be careful who you let get close to you, i guess. that's the only thing that seemed to change anything for me. sorry i can't explain more than that.</p></div>
+    </div>
+    <div class="post-gap">— thread locked by moderator —</div>
+  `;
+}
+
+function usenetHTML(){
+  return `
+    <div class="usenet-page">
+      <div class="usenet-head">
+        <div>Newsgroups: alt.folklore.ghost-stories</div>
+        <div>Subject: Re: tall watcher figure w/ purple eyes?? (long, x-posted)</div>
+        <div>From: hallow_ridge@aol.com</div>
+        <div>Date: 04 Mar 2003 22:11:09 -0500</div>
+      </div>
+      <pre class="usenet-body">&gt; does anyone have background on the "tall watcher" figure described
+&gt; in recent posts here? purple/violet eyes, burned or charred looking
+&gt; skin, extreme height, doesn't approach, doesn't speak.
+
+I've lurked this group for six years and this is the first time
+I've seen this description posted by people who clearly haven't
+read each other's posts. That consistency is the only reason I'm
+replying at all.
+
+My own grandmother (b. 1911) used a regional term for this that
+doesn't translate cleanly, closest I can render it is something
+like "the one who keeps the ledger." Her account matches what's
+being described here almost exactly, including the eye color,
+which she was oddly insistent about -- she corrected me twice as
+a child when I described it as "red" in a story I was telling.
+
+She would not discuss it further than that. When pressed she
+would only say that it does not come for you. It comes for
+whoever you can't stand to lose, and it does that slowly enough
+that by the time you understand what's happening, you've already
+made the mistake of loving someone in front of it.
+
+I don't post here often. I probably won't again.
+
+-hr
+
+--
+"the mind that suspects nothing believes everything" -- unattributed,
+found in the margin of a library book, 1998, never could trace it</pre>
+      </div>
+    </div>
+  `;
+}
+
+function libraryHTML(){
+  return `
+    <div class="lib-page">
+      <div class="lib-head">
+        <div class="lib-title">County Library System — Online Public Access Catalog</div>
+        <div class="lib-search">Search: <b>watcher entity folklore purple eyes</b> &nbsp; (1 result)</div>
+      </div>
+      <div class="lib-result">
+        <div class="lib-cover">BOOK</div>
+        <div class="lib-details">
+          <div class="lib-book-title">Watchers at the Threshold: Regional Death-Omen Folklore, 1560&ndash;1900</div>
+          <div class="lib-book-sub">Hollis, Margaret E. — University Press, 1978 — 214p.</div>
+          <table class="lib-table">
+            <tr><td>Call Number</td><td>GR580 .H65 1978</td></tr>
+            <tr><td>Location</td><td>Special Collections, Annex B</td></tr>
+            <tr><td>Status</td><td class="lib-status">NOT ON SHELF — flagged missing, 3 prior recovery attempts</td></tr>
+            <tr><td>Circulation Note</td><td>Item has been checked out and reported lost by four separate patrons since 1991. Replacement copies ordered twice; neither arrived. Contact Special Collections directly.</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ======================= wiring ======================= */
+document.querySelectorAll('#icons .icon').forEach(el=>{
+  let clicks=0;
+  el.addEventListener('click', ()=>{
+    document.querySelectorAll('#icons .icon').forEach(i=>i.classList.remove('selected'));
+    el.classList.add('selected');
+    clicks++;
+    if(clicks===1){
+      setTimeout(()=>{
+        if(clicks>1){
+          const id = el.dataset.open;
+          if(id==='browser') openBrowser(); else openFSItem(id);
+        }
+        clicks=0;
+      },260);
+    }
+  });
+});
+
+document.getElementById('desktop').addEventListener('click', (e)=>{
+  if(!e.target.closest('.icon')){
+    document.querySelectorAll('#icons .icon').forEach(i=>i.classList.remove('selected'));
+  }
+});
+
+/* open the private research folder by default so visitors land somewhere evocative */
+/* ======================= live clock ======================= */
+function updateClock(){
+  const el = document.getElementById('clock');
+  if(!el) return;
+  const now = new Date();
+  let h = now.getHours();
+  const m = now.getMinutes();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12; if(h===0) h = 12;
+  const mm = m < 10 ? '0'+m : m;
+  el.textContent = h+':'+mm+' '+ampm;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+window.addEventListener('load', ()=>{
+  openFSItem('monitorfolder');
+  setTimeout(()=>{
+    const w = openWins['monitorfolder'];
+    if(w){ w.el.style.left='90px'; w.el.style.top='60px'; }
+  }, 10);
+});
+</script>
+</body>
+</html>
